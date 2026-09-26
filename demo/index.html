@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MiMo // Neon Particle Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --cyan: #4df6ff;
+      --violet: #a978ff;
+      --pink: #ff4fd8;
+      --panel: rgba(8, 13, 29, 0.78);
+      --line: rgba(105, 232, 255, 0.18);
+      --text: #eafcff;
+      --muted: #7f9aaa;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #03050d;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 22% 18%, rgba(46, 97, 255, 0.13), transparent 31%),
+        radial-gradient(circle at 82% 72%, rgba(220, 45, 255, 0.10), transparent 34%);
+      z-index: 1;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    .brand {
+      position: fixed;
+      top: 28px;
+      left: 30px;
+      z-index: 2;
+      pointer-events: none;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: clamp(16px, 2vw, 24px);
+      font-weight: 720;
+      text-shadow: 0 0 20px rgba(77, 246, 255, 0.42);
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font: 600 10px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: 0.26em;
+    }
+
+    .panel {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 3;
+      width: min(330px, calc(100vw - 48px));
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      padding: 18px;
+      border: 1px solid rgba(106, 231, 255, 0.22);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(12, 21, 43, 0.9), var(--panel));
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(18px) saturate(130%);
+      scrollbar-width: thin;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .panel h1 {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .status {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+      color: #85ffcc;
+      font: 700 9px ui-monospace, monospace;
+      letter-spacing: 0.13em;
+    }
+
+    .status::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .stat {
+      padding: 11px 12px;
+      border: 1px solid rgba(116, 223, 255, 0.11);
+      border-radius: 11px;
+      background: rgba(8, 12, 27, 0.56);
+    }
+
+    .stat span {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--muted);
+      font-size: 8px;
+      font-weight: 750;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      font: 650 17px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .controls {
+      display: grid;
+      gap: 13px;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 7px;
+      color: #b7cbd5;
+      font-size: 10px;
+      font-weight: 650;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    output { color: var(--cyan); font-family: ui-monospace, monospace; }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      margin: 0;
+      border-radius: 99px;
+      outline: none;
+      appearance: none;
+      background: linear-gradient(90deg, rgba(77, 246, 255, 0.62), rgba(169, 120, 255, 0.4));
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 14px;
+      height: 14px;
+      border: 2px solid #dffeff;
+      border-radius: 50%;
+      appearance: none;
+      background: var(--cyan);
+      box-shadow: 0 0 12px rgba(77, 246, 255, 0.8);
+      cursor: pointer;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    button {
+      min-height: 36px;
+      padding: 8px 10px;
+      border: 1px solid rgba(96, 224, 255, 0.2);
+      border-radius: 9px;
+      color: #c8faff;
+      background: rgba(23, 43, 67, 0.56);
+      font: 700 9px/1.2 inherit;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: 160ms ease;
+    }
+
+    button:hover { border-color: rgba(77, 246, 255, 0.72); transform: translateY(-1px); }
+    button[aria-pressed="false"] { color: #708594; border-color: rgba(130, 145, 160, 0.14); background: rgba(24, 29, 42, 0.58); }
+
+    .hint {
+      position: fixed;
+      left: 30px;
+      bottom: 25px;
+      z-index: 2;
+      color: rgba(173, 202, 213, 0.62);
+      font: 600 9px ui-monospace, monospace;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    @media (max-width: 660px) {
+      .brand { top: 17px; left: 18px; }
+      .panel { top: auto; right: 12px; bottom: 12px; width: calc(100vw - 24px); max-height: 53vh; padding: 14px; }
+      .hint { display: none; }
+      .stats { margin-bottom: 13px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      button { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene" aria-label="Simulación interactiva de partículas"></canvas>
+
+  <div class="brand">
+    <strong>MiMo Particle Lab</strong>
+    <span>Q8 // local inference</span>
+  </div>
+
+  <aside class="panel" aria-label="Panel de simulación">
+    <div class="panel-head">
+      <h1>System telemetry</h1>
+      <span class="status" id="status">Live</span>
+    </div>
+
+    <section class="stats" aria-label="Métricas">
+      <div class="stat"><span>FPS</span><strong id="fps">0</strong></div>
+      <div class="stat"><span>Partículas</span><strong id="particleStat">0</strong></div>
+      <div class="stat"><span>Vel. media</span><strong id="avgSpeed">0.00</strong></div>
+      <div class="stat"><span>Conexiones</span><strong id="connections">0</strong></div>
+    </section>
+
+    <section class="controls" aria-label="Parámetros">
+      <label>
+        <span class="control-label"><span>Partículas</span><output id="countOut">180</output></span>
+        <input id="count" type="range" min="150" max="350" step="10" value="180">
+      </label>
+      <label>
+        <span class="control-label"><span>Atracción</span><output id="attractionOut">0.18</output></span>
+        <input id="attraction" type="range" min="0" max="0.5" step="0.01" value="0.18">
+      </label>
+      <label>
+        <span class="control-label"><span>Distancia de red</span><output id="distanceOut">115</output></span>
+        <input id="distance" type="range" min="50" max="180" step="5" value="115">
+      </label>
+      <label>
+        <span class="control-label"><span>Velocidad</span><output id="speedOut">1.00×</output></span>
+        <input id="speed" type="range" min="0.25" max="2" step="0.05" value="1">
+      </label>
+    </section>
+
+    <div class="buttons">
+      <button id="pause">Pausar</button>
+      <button id="reset">Reiniciar</button>
+      <button id="toggleConnections" aria-pressed="true">Conexiones</button>
+      <button id="toggleMouse" aria-pressed="true">Interacción</button>
+    </div>
+  </aside>
+
+  <div class="hint">Mueve para atraer · clic para emitir pulso</div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("scene");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const ui = {
+        fps: document.getElementById("fps"),
+        particleStat: document.getElementById("particleStat"),
+        avgSpeed: document.getElementById("avgSpeed"),
+        connections: document.getElementById("connections"),
+        status: document.getElementById("status"),
+        count: document.getElementById("count"),
+        attraction: document.getElementById("attraction"),
+        distance: document.getElementById("distance"),
+        speed: document.getElementById("speed"),
+        countOut: document.getElementById("countOut"),
+        attractionOut: document.getElementById("attractionOut"),
+        distanceOut: document.getElementById("distanceOut"),
+        speedOut: document.getElementById("speedOut"),
+        pause: document.getElementById("pause"),
+        reset: document.getElementById("reset"),
+        toggleConnections: document.getElementById("toggleConnections"),
+        toggleMouse: document.getElementById("toggleMouse")
+      };
+
+      const state = {
+        width: 0,
+        height: 0,
+        dpr: 1,
+        particles: [],
+        waves: [],
+        paused: false,
+        connectionsEnabled: true,
+        mouseEnabled: true,
+        connectionCount: 0,
+        fps: 0,
+        frames: 0,
+        fpsElapsed: 0,
+        lastTime: performance.now(),
+        mouse: { x: 0, y: 0, active: false }
+      };
+
+      const settings = {
+        count: Number(ui.count.value),
+        attraction: Number(ui.attraction.value),
+        distance: Number(ui.distance.value),
+        speed: Number(ui.speed.value),
+        friction: 0.994,
+        maxSpeed: 3.8
+      };
+
+      class Particle {
+        constructor(x = Math.random() * state.width, y = Math.random() * state.height) {
+          this.x = x;
+          this.y = y;
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 0.35 + Math.random() * 1.25;
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed;
+          this.ax = 0;
+          this.ay = 0;
+          this.radius = 1.35 + Math.random() * 2.25;
+          this.mass = this.radius * this.radius;
+          this.hue = 175 + Math.random() * 115;
+          this.pulse = Math.random() * Math.PI * 2;
+        }
+
+        applyForce(fx, fy) {
+          this.ax += fx / this.mass;
+          this.ay += fy / this.mass;
+        }
+
+        update(dt) {
+          if (state.mouse.active && state.mouseEnabled) {
+            const dx = state.mouse.x - this.x;
+            const dy = state.mouse.y - this.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 > 36 && d2 < 90000) {
+              const distance = Math.sqrt(d2);
+              const strength = settings.attraction * (1 - distance / 300);
+              this.applyForce((dx / distance) * strength, (dy / distance) * strength);
+            }
+          }
+
+          for (const wave of state.waves) {
+            const dx = this.x - wave.x;
+            const dy = this.y - wave.y;
+            const distance = Math.hypot(dx, dy) || 1;
+            const gap = Math.abs(distance - wave.radius);
+            if (gap < 46) {
+              const force = (1 - gap / 46) * wave.power;
+              this.applyForce((dx / distance) * force, (dy / distance) * force);
+            }
+          }
+
+          this.vx = (this.vx + this.ax * dt) * Math.pow(settings.friction, dt);
+          this.vy = (this.vy + this.ay * dt) * Math.pow(settings.friction, dt);
+          this.ax = 0;
+          this.ay = 0;
+
+          const limit = settings.maxSpeed * settings.speed;
+          const velocity = Math.hypot(this.vx, this.vy);
+          if (velocity > limit) {
+            this.vx = (this.vx / velocity) * limit;
+            this.vy = (this.vy / velocity) * limit;
+          }
+
+          this.x += this.vx * dt * settings.speed;
+          this.y += this.vy * dt * settings.speed;
+          this.pulse += 0.018 * dt;
+
+          if (this.x < this.radius) { this.x = this.radius; this.vx = Math.abs(this.vx); }
+          if (this.x > state.width - this.radius) { this.x = state.width - this.radius; this.vx = -Math.abs(this.vx); }
+          if (this.y < this.radius) { this.y = this.radius; this.vy = Math.abs(this.vy); }
+          if (this.y > state.height - this.radius) { this.y = state.height - this.radius; this.vy = -Math.abs(this.vy); }
+        }
+
+        draw() {
+          const glow = this.radius * (3.2 + Math.sin(this.pulse) * 0.45);
+          const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glow);
+          gradient.addColorStop(0, `hsla(${this.hue}, 100%, 82%, 1)`);
+          gradient.addColorStop(0.28, `hsla(${this.hue}, 100%, 64%, .72)`);
+          gradient.addColorStop(1, `hsla(${this.hue}, 100%, 55%, 0)`);
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, glow, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function resize() {
+        state.width = window.innerWidth;
+        state.height = window.innerHeight;
+        state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(state.width * state.dpr);
+        canvas.height = Math.round(state.height * state.dpr);
+        canvas.style.width = `${state.width}px`;
+        canvas.style.height = `${state.height}px`;
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        for (const p of state.particles) {
+          p.x = Math.min(Math.max(p.radius, p.x), state.width - p.radius);
+          p.y = Math.min(Math.max(p.radius, p.y), state.height - p.radius);
+        }
+      }
+
+      function syncParticleCount() {
+        while (state.particles.length < settings.count) state.particles.push(new Particle());
+        if (state.particles.length > settings.count) state.particles.length = settings.count;
+      }
+
+      function reset() {
+        state.particles = [];
+        state.waves = [];
+        syncParticleCount();
+      }
+
+      function resolveCollision(a, b, dx, dy, distance) {
+        const minDistance = a.radius + b.radius;
+        if (distance <= 0 || distance >= minDistance) return;
+
+        const nx = dx / distance;
+        const ny = dy / distance;
+        const overlap = minDistance - distance;
+        const totalMass = a.mass + b.mass;
+        a.x -= nx * overlap * (b.mass / totalMass);
+        a.y -= ny * overlap * (b.mass / totalMass);
+        b.x += nx * overlap * (a.mass / totalMass);
+        b.y += ny * overlap * (a.mass / totalMass);
+
+        const relativeVelocity = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (relativeVelocity >= 0) return;
+        const impulse = -(1.78 * relativeVelocity) / (1 / a.mass + 1 / b.mass);
+        a.vx -= (impulse * nx) / a.mass;
+        a.vy -= (impulse * ny) / a.mass;
+        b.vx += (impulse * nx) / b.mass;
+        b.vy += (impulse * ny) / b.mass;
+      }
+
+      function physicsAndConnections(dt) {
+        state.connectionCount = 0;
+        const maxDistance2 = settings.distance * settings.distance;
+
+        for (const p of state.particles) p.update(dt);
+
+        for (let i = 0; i < state.particles.length; i++) {
+          const a = state.particles[i];
+          for (let j = i + 1; j < state.particles.length; j++) {
+            const b = state.particles[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const distance2 = dx * dx + dy * dy;
+            const collisionDistance = a.radius + b.radius;
+
+            if (distance2 < collisionDistance * collisionDistance) {
+              resolveCollision(a, b, dx, dy, Math.sqrt(distance2));
+            }
+
+            if (state.connectionsEnabled && distance2 < maxDistance2) {
+              const distance = Math.sqrt(distance2);
+              const alpha = (1 - distance / settings.distance) * 0.43;
+              ctx.strokeStyle = `rgba(84, 218, 255, ${alpha})`;
+              ctx.lineWidth = 0.55;
+              ctx.beginPath();
+              ctx.moveTo(a.x, a.y);
+              ctx.lineTo(b.x, b.y);
+              ctx.stroke();
+              state.connectionCount++;
+            }
+          }
+        }
+      }
+
+      function updateWaves(dt) {
+        for (const wave of state.waves) {
+          wave.radius += 8 * dt;
+          wave.life -= 0.022 * dt;
+          wave.power *= Math.pow(0.965, dt);
+        }
+        state.waves = state.waves.filter(wave => wave.life > 0);
+      }
+
+      function drawWaves() {
+        for (const wave of state.waves) {
+          ctx.strokeStyle = `rgba(157, 117, 255, ${Math.max(0, wave.life) * 0.65})`;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      function drawBackground(time) {
+        const gradient = ctx.createRadialGradient(
+          state.width * (0.44 + Math.sin(time * 0.00008) * 0.04),
+          state.height * 0.42,
+          0,
+          state.width * 0.5,
+          state.height * 0.5,
+          Math.max(state.width, state.height) * 0.8
+        );
+        gradient.addColorStop(0, "#0b1530");
+        gradient.addColorStop(0.48, "#070b19");
+        gradient.addColorStop(1, "#02040b");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, state.width, state.height);
+      }
+
+      function updateStats(dt, elapsed) {
+        state.frames++;
+        state.fpsElapsed += elapsed;
+        if (state.fpsElapsed >= 500) {
+          state.fps = Math.round((state.frames * 1000) / state.fpsElapsed);
+          state.frames = 0;
+          state.fpsElapsed = 0;
+          ui.fps.textContent = String(state.fps);
+        }
+        const totalSpeed = state.particles.reduce((sum, p) => sum + Math.hypot(p.vx, p.vy), 0);
+        ui.particleStat.textContent = String(state.particles.length);
+        ui.avgSpeed.textContent = state.particles.length ? (totalSpeed / state.particles.length).toFixed(2) : "0.00";
+        ui.connections.textContent = String(state.connectionCount);
+      }
+
+      function frame(time) {
+        const elapsed = Math.min(time - state.lastTime, 34);
+        state.lastTime = time;
+        const dt = elapsed / (1000 / 60);
+
+        drawBackground(time);
+        if (!state.paused) {
+          updateWaves(dt);
+          physicsAndConnections(dt);
+        } else if (state.connectionsEnabled) {
+          physicsAndConnections(0);
+        } else {
+          state.connectionCount = 0;
+        }
+        drawWaves();
+        for (const p of state.particles) p.draw();
+        updateStats(dt, elapsed);
+        requestAnimationFrame(frame);
+      }
+
+      function bindRange(input, output, key, formatter = value => value) {
+        input.addEventListener("input", () => {
+          settings[key] = Number(input.value);
+          output.value = formatter(input.value);
+          if (key === "count") syncParticleCount();
+        });
+      }
+
+      bindRange(ui.count, ui.countOut, "count");
+      bindRange(ui.attraction, ui.attractionOut, "attraction", value => Number(value).toFixed(2));
+      bindRange(ui.distance, ui.distanceOut, "distance");
+      bindRange(ui.speed, ui.speedOut, "speed", value => `${Number(value).toFixed(2)}×`);
+
+      ui.pause.addEventListener("click", () => {
+        state.paused = !state.paused;
+        ui.pause.textContent = state.paused ? "Reanudar" : "Pausar";
+        ui.status.textContent = state.paused ? "Paused" : "Live";
+        ui.status.style.color = state.paused ? "#ffbe6b" : "#85ffcc";
+      });
+
+      ui.reset.addEventListener("click", reset);
+
+      ui.toggleConnections.addEventListener("click", () => {
+        state.connectionsEnabled = !state.connectionsEnabled;
+        ui.toggleConnections.setAttribute("aria-pressed", String(state.connectionsEnabled));
+      });
+
+      ui.toggleMouse.addEventListener("click", () => {
+        state.mouseEnabled = !state.mouseEnabled;
+        ui.toggleMouse.setAttribute("aria-pressed", String(state.mouseEnabled));
+      });
+
+      canvas.addEventListener("pointermove", event => {
+        state.mouse.x = event.clientX;
+        state.mouse.y = event.clientY;
+        state.mouse.active = true;
+      });
+
+      canvas.addEventListener("pointerleave", () => { state.mouse.active = false; });
+      window.addEventListener("blur", () => { state.mouse.active = false; });
+
+      canvas.addEventListener("pointerdown", event => {
+        if (event.button !== 0) return;
+        state.waves.push({ x: event.clientX, y: event.clientY, radius: 6, power: 3.9, life: 1 });
+        if (state.waves.length > 8) state.waves.shift();
+      });
+
+      window.addEventListener("resize", resize, { passive: true });
+
+      resize();
+      reset();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
